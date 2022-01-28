@@ -1,0 +1,13 @@
+[package]
+name = "vagrantx"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+virtualization-rs = {git = "https://github.com/isaacd9/virtualization-rs"}
+structopt = "0.3.26"
+libc = "0.2.115"
+block = "0.1.6"
+objc = "0.2.7"
