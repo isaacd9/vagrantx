@@ -39,10 +39,7 @@ struct Opt {
     #[structopt(long, parse(from_os_str))]
     initrd: PathBuf,
 
-    #[structopt(
-        long,
-        default_value = "console=hvc0 rd.break=initqueue inst.stage2=hd:vda:images/install.img inst.cmdline nomodeset"
-    )]
+    #[structopt(long, default_value = "")]
     command_line: String,
 
     #[structopt(long, parse(from_os_str))]
