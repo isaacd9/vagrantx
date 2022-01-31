@@ -4,7 +4,10 @@ use block::{Block, ConcreteBlock};
 use libc::{sleep, tcgetattr, tcsetattr, ECHO, ICANON, ICRNL, TCSANOW};
 use objc::rc::StrongPtr;
 use objc::{msg_send, sel, sel_impl};
-use std::fs::canonicalize;
+use serde::{Deserialize, Serialize};
+use std::error;
+use std::fs::{canonicalize, File};
+use std::io::Read;
 use std::mem::MaybeUninit;
 use std::sync::{Arc, RwLock};
 use virtualization_rs::virtualization::boot_loader;
@@ -33,22 +36,40 @@ use structopt::StructOpt;
 #[derive(StructOpt, Debug)]
 #[structopt(name = "simplevm")]
 struct Opt {
-    #[structopt(long, parse(from_os_str))]
-    kernel: PathBuf,
+    #[structopt(parse(from_os_str))]
+    config: PathBuf,
+}
 
-    #[structopt(long, parse(from_os_str))]
+fn default_cpu() -> usize {
+    2
+}
+
+fn default_mem_size() -> usize {
+    2147483648
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Boot {
+    kernel: PathBuf,
     initrd: PathBuf,
 
-    #[structopt(long, default_value = "")]
+    #[serde(default)]
     command_line: String,
+}
 
-    #[structopt(long, parse(from_os_str))]
-    disk: Vec<PathBuf>,
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Config {
+    boot: Boot,
 
-    #[structopt(long, default_value = "2")]
-    cpu: usize,
+    #[serde(default)]
+    disks: Vec<PathBuf>,
 
-    #[structopt(long, default_value = "2147483648")]
+    #[serde(default = "default_cpu")]
+    cpu_count: usize,
+
+    #[serde(default = "default_mem_size")]
     memory_size: usize,
 }
 
@@ -127,15 +148,18 @@ fn build_block_devices(
     Ok(block_devices)
 }
 
+fn load_config(config_file: &PathBuf) -> Result<Config, Box<dyn error::Error>> {
+    let mut file = File::open(config_file)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    serde_json::from_str(&contents).map_err(|e| e.into())
+}
+
 fn main() {
     let opt = Opt::from_args();
 
-    let cpu_count = opt.cpu;
-    let memory_size = opt.memory_size;
-    let command_line = opt.command_line;
-    let kernel = opt.kernel;
-    let disks: Vec<PathBuf> = opt.disk;
-    let initrd = opt.initrd;
+    let config = load_config(&opt.config).expect("could not read config");
 
     if !VZVirtualMachine::supported() {
         println!("not supported");
@@ -149,9 +173,13 @@ fn main() {
     let mut network_device = VZVirtioNetworkDeviceConfiguration::new(network_attachment);
     network_device.set_mac_address(VZMACAddress::random_locally_administered_address());
 
-    let boot_loader = build_boot_loader(&kernel, &initrd, &command_line);
+    let boot_loader = build_boot_loader(
+        &config.boot.kernel,
+        &config.boot.initrd,
+        &config.boot.command_line,
+    );
 
-    let block_devices = match build_block_devices(&disks) {
+    let block_devices = match build_block_devices(&config.disks) {
         Ok(devices) => devices,
         Err(err) => {
             err.dump();
@@ -161,8 +189,8 @@ fn main() {
 
     let conf = VZVirtualMachineConfigurationBuilder::new()
         .boot_loader(boot_loader)
-        .cpu_count(cpu_count)
-        .memory_size(memory_size)
+        .cpu_count(config.cpu_count)
+        .memory_size(config.memory_size)
         .entropy_devices(vec![entropy])
         .memory_balloon_devices(vec![memory_balloon])
         .network_devices(vec![network_device])
