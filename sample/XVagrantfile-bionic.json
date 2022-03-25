@@ -1,0 +1,11 @@
+{
+	"boot": {
+		"kernel": "/Users/isaac/code/scratch/ubuntu/cloud-images/bionic-server-cloudimg-arm64-vmlinuz-generic",
+		"initrd": "/Users/isaac/code/scratch/ubuntu/cloud-images/bionic-server-cloudimg-arm64-initrd-generic",
+		"command_line": "console=hvc0 ds=nocloud root=/dev/vda"
+	},
+	"disks": [
+		"/Users/isaac/code/scratch/ubuntu/cloud-images/bionic-server-cloudimg-arm64.img",
+		"/Users/isaac/code/scratch/ubuntu/cidata.iso"
+	]
+}

@@ -1,9 +1,0 @@
-{
-	"boot": {
-		"kernel": "/Users/isaac/code/scratch/focal/focal-desktop-arm64/casper/vmlinuz-unzipped",
-		"initrd": "/Users/isaac/code/scratch/focal/focal-desktop-arm64/casper/initrd"
-	},
-	"disks": [
-		"/Users/isaac/code/scratch/focal/focal-desktop-arm64.iso"
-	]
-}
