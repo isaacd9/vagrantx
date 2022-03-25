@@ -56,6 +56,9 @@ struct Boot {
 
     #[serde(default)]
     command_line: String,
+
+    #[serde(default)]
+    disks: Vec<PathBuf>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,11 +66,11 @@ struct Boot {
 struct Config {
     boot: Boot,
 
-    #[serde(default)]
-    disks: Vec<PathBuf>,
-
     #[serde(default = "default_cpu")]
     cpu_count: usize,
+
+    #[serde(default)]
+    additional_disks: Vec<PathBuf>,
 
     #[serde(default = "default_mem_size")]
     memory_size: usize,
@@ -179,7 +182,15 @@ fn main() {
         &config.boot.command_line,
     );
 
-    let block_devices = match build_block_devices(&config.disks) {
+    let block_devices = match build_block_devices(
+        &config
+            .boot
+            .disks
+            .iter()
+            .cloned()
+            .chain(config.additional_disks.iter().cloned())
+            .collect::<Vec<_>>(),
+    ) {
         Ok(devices) => devices,
         Err(err) => {
             err.dump();
